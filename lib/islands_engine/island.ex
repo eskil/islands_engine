@@ -5,6 +5,8 @@ defmodule IslandsEngine.Island do
   @enforce_keys [:coordinates, :hit_coordinates]
   defstruct [:coordinates, :hit_coordinates]
 
+  defp offsets(:square), do: [{0,0}, {0, 1}, {1, 0}, {1, 1}]
+
   defp offsets(:atoll), do: [{0,0}, {0, 1}, {1, 1}, {2, 0}, {2, 1}]
 
   defp offsets(:dot), do: [{0, 0}]
@@ -29,6 +31,14 @@ defmodule IslandsEngine.Island do
     end
   end
 
+  @doc """
+  ## Examples
+    iex> Island.new(:error, Coordinate.new!(1, 1))
+    {:error, :invalid_island_type}
+
+    iex> Island.new(:dot, Coordinate.new!(1, 1))
+    {:ok, %Island{coordinates: MapSet.new([%Coordinate{col: 1, row: 1}]), hit_coordinates: %MapSet{}}}
+  """
   def new(type, %Coordinate{} = upper_left) do
     # The `[_|_] = offsets <- ...` pattern match enforces the returned value
     # is a list. Without this, `offset` could be assigned an error from `offsets/1`,

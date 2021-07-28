@@ -6,15 +6,29 @@ defmodule IslandsEngine.Coordinate do
 
   @board_range 1..10
 
+  @doc """
+  ## Examples
+    iex> Coordinate.new(1, 1)
+    {:ok, %Coordinate{row: 1, col: 1}}
+
+    iex> Coordinate.new(0, 0)
+    {:error, :invalid_coordinate}
+
+    iex> Coordinate.new!(1, 1)
+    %Coordinate{row: 1, col: 1}
+
+    iex> Coordinate.new!(0, 0)
+    ** (ArgumentError) invalid coordinate
+  """
   def new(row, col) when row in @board_range and col in @board_range do
     {:ok, %Coordinate{row: row, col: col}}
   end
+
+  def new(_row, _col), do: {:error, :invalid_coordinate}
 
   def new!(row, col) when row in @board_range and col in @board_range do
     %Coordinate{row: row, col: col}
   end
 
-  def new(_row, _col), do: {:error, :invalid_coordinate}
-
-  def new!(_row, _col), do: raise "Invalid coordinate"
+  def new!(_row, _col), do: raise(ArgumentError, "invalid coordinate")
 end
