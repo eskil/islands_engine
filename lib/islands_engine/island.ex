@@ -52,4 +52,24 @@ defmodule IslandsEngine.Island do
         error -> error
     end
   end
+
+  def new!(type, %Coordinate{} = upper_left) do
+    case new(type, upper_left) do
+      {:ok, island} -> island
+      {:error, :invalid_island_type} -> raise(ArgumentError, "Invalid island type")
+      {:error, :invalid_coordinate} -> raise(ArgumentError, "Invalid coordinate")
+    end
+  end
+
+  @doc """
+  ## Examples
+    iex> Island.overlaps?(Island.new!(:square, Coordinate.new!(1, 1)), Island.new!(:dot, Coordinate.new!(1, 1)))
+    true
+
+    iex> Island.overlaps?(Island.new!(:square, Coordinate.new!(1, 1)), Island.new!(:dot, Coordinate.new!(4, 4)))
+    false
+  """
+  def overlaps?(lhs, rhs) do
+    not MapSet.disjoint?(lhs.coordinates, rhs.coordinates)
+  end
 end
