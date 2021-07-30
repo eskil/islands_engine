@@ -26,9 +26,10 @@ defmodule IslandsEngine.Coordinate do
 
   def new(_row, _col), do: {:error, :invalid_coordinate}
 
-  def new!(row, col) when row in @board_range and col in @board_range do
-    %Coordinate{row: row, col: col}
+  def new!(row, col) do
+    case new(row, col) do
+      {:ok, coordinate} -> coordinate
+      {:error, :invalid_coordinate} -> raise(ArgumentError, "invalid coordinate")
+    end
   end
-
-  def new!(_row, _col), do: raise(ArgumentError, "invalid coordinate")
 end
