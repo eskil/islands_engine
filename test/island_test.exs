@@ -21,17 +21,19 @@ defmodule IslandsEngine.IslandTest do
     :miss = Island.guess(island, coordinate)
   end
 
-  test "island forested" do
-    {:ok, island} = Island.new(:dot, Coordinate.new!(1, 1))
-    {:ok, coordinate} = Coordinate.new(1, 1)
-    {:hit, hit_island} = Island.guess(island, coordinate)
-    assert Island.forested?(hit_island) == true
+  test "island guess a hit and is not forested" do
+    {:ok, island} = Island.new(:square, Coordinate.new!(1, 1))
+    {:hit, island} = Island.guess(island, Coordinate.new!(1, 1))
+    assert Island.forested?(island) == false
   end
 
-  test "island not forested" do
+  test "island guess all hits and is forested" do
     {:ok, island} = Island.new(:square, Coordinate.new!(1, 1))
-    {:ok, coordinate} = Coordinate.new(1, 1)
-    {:hit, hit_island} = Island.guess(island, coordinate)
-    assert Island.forested?(hit_island) == false
+    {:hit, island} = Island.guess(island, Coordinate.new!(1, 1))
+    {:hit, island} = Island.guess(island, Coordinate.new!(1, 2))
+    {:hit, island} = Island.guess(island, Coordinate.new!(2, 1))
+    {:hit, island} = Island.guess(island, Coordinate.new!(2, 2))
+    assert Island.forested?(island) == true
   end
+
 end

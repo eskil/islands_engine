@@ -5,6 +5,7 @@ defmodule IslandsEngine.Coordinate do
   defstruct [:row, :col]
 
   @board_range 1..10
+  def board_range, do: @board_range
 
   @doc """
   ## Examples
