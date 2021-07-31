@@ -48,7 +48,7 @@ defmodule IslandsEngine.BoardTest do
   end
 
   test "all islands positioned" do
-    # posistion all isladnds, check that all_islands_positioned is false until the last
+    # position all islands, check that all_islands_positioned is false until the last
     board = Board.new()
     board = Board.position_island(board, :square, Island.new!(:square, Coordinate.new!(1, 1)))
     assert Board.all_islands_positioned?(board) == false
@@ -74,23 +74,21 @@ defmodule IslandsEngine.BoardTest do
     board = Board.position_island(board, :dot, Island.new!(:dot, Coordinate.new!(10, 10)))
     assert Board.all_islands_positioned?(board) == true
 
-    # Check a hit on the first island, but not forested and no win
+    # 1. Check a hit on the first island, but not forested and no win
     {:hit, :none, :no_win, board} = Board.guess(board, Coordinate.new!(1, 1))
 
-    # Carpet forest the top half...
-    board = Enum.reduce(Coordinate.board_range, board, fn col, board ->
-      board = Enum.reduce(1..9, board, fn row, board ->
-        {hit_or_miss, forested, win, board} = Board.guess(board, Coordinate.new!(row, col))
-        IO.puts "row=#{row} col=#{col} #{hit_or_miss} #{forested} #{win}"
-        board
-      end)
+    # Carpet forest the map, except the three cases we test separately
+    targets = for row <- Coordinate.board_range, col <- Coordinate.board_range, do: {row, col}
+    targets = Enum.reject(targets, fn {row, col} -> {row, col} in [{1, 1}, {10, 9}, {10, 10}] end)
+    board = Enum.reduce(targets, board, fn {row, col}, board ->
+      {_hit_or_miss, _forested, _win, board} = Board.guess(board, Coordinate.new!(row, col))
       board
     end)
 
-    # Check a miss on the last row
-    {:miss, :none, :no_win, board} = Board.guess(board, Coordinate.new!(10, 1))
-    # Check a hit and forest on the :dot
-    {:hit, :dot, :win, board} = Board.guess(board, Coordinate.new!(10, 10))
+    # 2. Check a miss on the last row
+    {:miss, :none, :no_win, board} = Board.guess(board, Coordinate.new!(10, 9))
 
+    # 2. Check a hit and forest on the :dot, and win
+    {:hit, :dot, :win, _board} = Board.guess(board, Coordinate.new!(10, 10))
   end
 end
