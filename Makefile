@@ -17,4 +17,4 @@ pure:
 	mix clean
 
 test:
-	mix test
+	MIX_ENV=test mix coveralls

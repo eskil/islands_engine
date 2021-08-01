@@ -58,8 +58,8 @@ defmodule IslandsEngine.Island do
   def new!(type, %Coordinate{} = upper_left) do
     case new(type, upper_left) do
       {:ok, island} -> island
-      {:error, :invalid_island_type} -> raise(ArgumentError, "Invalid island type")
-      {:error, :invalid_coordinate} -> raise(ArgumentError, "Invalid coordinate")
+      {:error, :invalid_island_type} -> raise(ArgumentError, "invalid island type")
+      {:error, :invalid_coordinate} -> raise(ArgumentError, "invalid coordinate")
     end
   end
 
