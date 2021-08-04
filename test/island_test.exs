@@ -6,9 +6,12 @@ defmodule IslandsEngine.IslandTest do
 
   test "new!" do
     island = Island.new!(:dot, Coordinate.new!(10, 10))
+    assert island
+
     assert_raise ArgumentError, "invalid island type", fn ->
       Island.new!(:ok, Coordinate.new!(10, 10))
     end
+
     assert_raise ArgumentError, "invalid coordinate", fn ->
       Island.new!(:square, Coordinate.new!(10, 10))
     end

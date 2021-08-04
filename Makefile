@@ -17,4 +17,4 @@ pure:
 	mix clean
 
 test:
-	MIX_ENV=test mix coveralls
+	MIX_ENV=test mix coveralls.html --trace
