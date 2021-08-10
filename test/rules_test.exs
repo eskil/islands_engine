@@ -20,7 +20,7 @@ defmodule IslandsEngine.RulesTest do
       ]}
   end
 
-  describe "rules games setup" do
+  describe "rules setup" do
     test "starts initialised" do
       rules = Rules.new()
       assert rules.state == :initialised
@@ -94,7 +94,7 @@ defmodule IslandsEngine.RulesTest do
     end
   end
 
-  describe "rules game play" do
+  describe "rules play" do
     test "player 1 makes turn", %{ready_player1: rules} do
       {:ok, rules} = Rules.check(rules, {:guess_coordinate, :player1})
       assert rules.state == :player2_turn
@@ -116,7 +116,7 @@ defmodule IslandsEngine.RulesTest do
     end
   end
 
-  describe "rules game ends" do
+  describe "rules ends" do
     test "player 1 does not win", %{ready_player1: rules} do
       {:ok, rules} = Rules.check(rules, {:win_check, :no_win})
       assert rules.state == :player1_turn
