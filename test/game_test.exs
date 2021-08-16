@@ -3,8 +3,17 @@ defmodule IslandsEngine.GameTest do
   alias IslandsEngine.{Game, Coordinate}
   doctest IslandsEngine.Game, import: true
 
-  describe "game setup" do
-    test "starts" do
+  describe "game genserver" do
+    test "via tuple" do
+      assert Game.via_tuple("player 1") == {:via, Registry, {Registry.Game, "player 1"}}
+    end
+
+    test "init" do
+      {:ok, state} = Game.init("player 1")
+      assert Map.keys(state) == [:player1, :player2, :rules]
+    end
+
+    test "start_link" do
       {:ok, pid} = start_supervised({Game, "player 1"})
       state = :sys.get_state(pid)
       assert state.player1.name == "player 1"
@@ -12,6 +21,13 @@ defmodule IslandsEngine.GameTest do
       assert state.rules
     end
 
+    test "child_spec" do
+      child_spec = Game.child_spec("game")
+      assert child_spec.restart == :transient
+    end
+  end
+
+  describe "game setup" do
     test "add player 2" do
       {:ok, pid} = start_supervised({Game, "player 1"})
       :ok = Game.add_player(pid, "player 2")
@@ -71,7 +87,7 @@ defmodule IslandsEngine.GameTest do
   end
 
   describe "game play" do
-    test "players guess and islands and player1 wins" do
+    test "full game play" do
       {:ok, pid} = start_supervised({Game, "player 1"})
       :ok = Game.add_player(pid, "player 2")
 
@@ -93,13 +109,23 @@ defmodule IslandsEngine.GameTest do
 
       # Carpet forest the map, except the three cases we test separately
       targets = for row <- Coordinate.board_range, col <- Coordinate.board_range, do: {row, col}
-      targets = Enum.reject(targets, fn {row, col} -> {row, col} in [{10, 10}] end)
+      targets = Enum.reject(targets, fn {row, col} -> {row, col} in [{10, 1}, {10, 10}] end)
       Enum.map(targets, fn {row, col} ->
         {_hit_or_miss, _forested, :no_win} = Game.guess_coordinate(pid, :player1, row, col)
         {_hit_or_miss, _forested, :no_win} = Game.guess_coordinate(pid, :player2, row, col)
       end)
 
-      # Player 1 guesses the final island and wins
+      # Player 1 misses on last row
+      {:miss, :none, :no_win} = Game.guess_coordinate(pid, :player1, 10, 1)
+      state = :sys.get_state(pid)
+      assert state.rules.state == :player2_turn
+
+      # Player 2 misses on last row
+      {:miss, :none, :no_win} = Game.guess_coordinate(pid, :player2, 10, 1)
+      state = :sys.get_state(pid)
+      assert state.rules.state == :player1_turn
+
+      # Player 1 hits the final island and wins
       {:hit, :dot, :win} = Game.guess_coordinate(pid, :player1, 10, 10)
       state = :sys.get_state(pid)
       assert state.rules.state == :game_over
@@ -118,16 +144,16 @@ defmodule IslandsEngine.GameTest do
     test "cannot position island when in turn mode" do
       {:ok, pid} = start_supervised({Game, "player 1"})
       :ok = Game.add_player(pid, "player 2")
-      # Overwrite the state with one where the rules
+
+      # Overwrite the state with one where the rules are already in player1's turn
       state = :sys.get_state(pid)
       new_rules = %{state.rules |
                     state: :player1_turn,
                     player1: :islands_set,
                     player2: :islands_set
                    }
-      :sys.replace_state(pid, fn state ->
-        %{state| rules: new_rules}
-      end)
+      :sys.replace_state(pid, fn state -> %{state| rules: new_rules} end)
+
       :error = Game.position_island(pid, :player2, :square, 1, 1)
     end
 
@@ -174,14 +200,15 @@ defmodule IslandsEngine.GameTest do
     test "cannot reposition after set" do
       {:ok, pid} = start_supervised({Game, "player 1"})
       :ok = Game.add_player(pid, "player 2")
-      :ok = Game.position_island(pid, :player1, :square, 1, 1)
-      :ok = Game.position_island(pid, :player1, :atoll, 1, 3)
-      :ok = Game.position_island(pid, :player1, :l_shape, 3, 1)
-      :ok = Game.position_island(pid, :player1, :s_shape, 1, 5)
-      :ok = Game.position_island(pid, :player1, :dot, 1, 5)
-      :ok = Game.position_island(pid, :player1, :atoll, 1, 3)
 
-      :ok = Game.set_islands(pid, :player1)
+      # Overwrite the state with one where the rules are already in player1's turn
+      state = :sys.get_state(pid)
+      new_rules = %{state.rules |
+                    state: :player1_turn,
+                    player1: :islands_set,
+                    player2: :islands_set
+                   }
+      :sys.replace_state(pid, fn state -> %{state| rules: new_rules} end)
 
       :error = Game.position_island(pid, :player1, :dot, 1, 5)
     end
@@ -190,40 +217,34 @@ defmodule IslandsEngine.GameTest do
       {:ok, pid} = start_supervised({Game, "player 1"})
       :ok = Game.add_player(pid, "player 2")
 
-      :ok = Game.position_island(pid, :player1, :square, 1, 1)
-      :ok = Game.position_island(pid, :player1, :atoll, 1, 3)
-      :ok = Game.position_island(pid, :player1, :l_shape, 3, 1)
-      :ok = Game.position_island(pid, :player1, :s_shape, 1, 5)
-      :ok = Game.position_island(pid, :player1, :dot, 1, 5)
-      :ok = Game.position_island(pid, :player1, :atoll, 1, 3)
-      :ok = Game.set_islands(pid, :player1)
+      # Overwrite the state with one where the rules are already in player1's turn
+      state = :sys.get_state(pid)
+      new_rules = %{state.rules |
+                    state: :player1_turn,
+                    player1: :islands_set,
+                    player2: :islands_set
+                   }
+      :sys.replace_state(pid, fn state -> %{state| rules: new_rules} end)
 
-      :ok = Game.position_island(pid, :player2, :square, 1, 1)
-      :ok = Game.position_island(pid, :player2, :atoll, 1, 3)
-      :ok = Game.position_island(pid, :player2, :l_shape, 3, 1)
-      :ok = Game.position_island(pid, :player2, :s_shape, 1, 5)
-      :ok = Game.position_island(pid, :player2, :dot, 10, 10)
-      :ok = Game.position_island(pid, :player2, :atoll, 1, 3)
-      :ok = Game.set_islands(pid, :player2)
-
-      # Player1 is up first, Player2 cannot play
+      # Player1 is up, Player2 cannot play
       state = :sys.get_state(pid)
       assert state.rules.state == :player1_turn
       :error = Game.guess_coordinate(pid, :player2, 1, 1)
 
-      # Player1 is up and guesses, player2 is up then.
-      {:hit, :none, :no_win} = Game.guess_coordinate(pid, :player1, 1, 1)
+      # Player1 is up and guesses...
+      {_hit_or_miss, :none, :no_win} = Game.guess_coordinate(pid, :player1, 1, 1)
+      # ... Player2 is up then.
       state = :sys.get_state(pid)
       assert state.rules.state == :player2_turn
 
-      # Player2 is up, Player1 cannot play again
+      # When Player2 is up, Player1 cannot go.
       :error = Game.guess_coordinate(pid, :player1, 1, 1)
 
-      # Player2 can go
-      {:hit, :none, :no_win} = Game.guess_coordinate(pid, :player2, 1, 1)
+      # But Player2 can go
+      {_hit_or_miss, :none, :no_win} = Game.guess_coordinate(pid, :player2, 1, 1)
 
       # Player1 can hit same coordinate if they want...
-      {:hit, :none, :no_win} = Game.guess_coordinate(pid, :player1, 1, 1)
+      {_hit_or_miss, :none, :no_win} = Game.guess_coordinate(pid, :player1, 1, 1)
 
       # Player2 can go, but cannot hit invalida coordinate
       {:error, :invalid_coordinate} = Game.guess_coordinate(pid, :player2, 0, 0)
