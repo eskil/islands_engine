@@ -9,8 +9,10 @@ defmodule IslandsEngine.GameTest do
     end
 
     test "init" do
-      {:ok, state} = Game.init("player 1")
+      {:ok, state, timeout} = Game.init("player 1")
       assert Map.keys(state) == [:player1, :player2, :rules]
+      assert is_number(timeout)
+      assert timeout > 0
     end
 
     test "start_link" do
@@ -24,6 +26,10 @@ defmodule IslandsEngine.GameTest do
     test "child_spec" do
       child_spec = Game.child_spec("game")
       assert child_spec.restart == :transient
+    end
+
+    test "timeout" do
+      assert Game.handle_info(:timeout, :ok) == {:stop, {:shutdown, :timeout}, :ok}
     end
   end
 
