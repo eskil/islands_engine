@@ -3,16 +3,28 @@ defmodule IslandsEngine.GameTest do
   alias IslandsEngine.{Game, Coordinate}
   doctest IslandsEngine.Game, import: true
 
+  setup _cleanup_ets_game_state_between_each_test do
+    :ets.delete(:game_state, "player 1")
+    :ok
+  end
+
+  # This helpers validates that the process and ets state match. This is used in unit tests to ensure
+  # that handle_cast/calls properly call reply_success and thereby set the ets state.
+  def get_and_check_state(pid, name) do
+    process_state = :sys.get_state(pid)
+    [{^name, ets_state}] = :ets.lookup(:game_state, name)
+    assert process_state == ets_state
+    ets_state
+  end
+
   describe "game genserver" do
     test "via tuple" do
       assert Game.via_tuple("player 1") == {:via, Registry, {Registry.Game, "player 1"}}
     end
 
     test "init" do
-      {:ok, state, timeout} = Game.init("player 1")
+      {:ok, state} = Game.init("player 1")
       assert Map.keys(state) == [:player1, :player2, :rules]
-      assert is_number(timeout)
-      assert timeout > 0
     end
 
     test "start_link" do
@@ -33,11 +45,48 @@ defmodule IslandsEngine.GameTest do
     end
   end
 
+  describe "game ets" do
+    test "init/terminate adds/removes ets state" do
+      {:ok, pid} = start_supervised({Game, "player 1"})
+      # TODO: I haven't seen this test fail, but there should be a slight race
+      # condition given that the game sends itself a message to set state. If
+      # this fails, a small pause here should fix it.
+      # Process.sleep(10)
+      assert :ets.lookup(:game_state, "player 1") != []
+      Game.terminate({:shutdown, :timeout}, :sys.get_state(pid))
+      assert :ets.lookup(:game_state, "player 1") == []
+    end
+
+    test "set state message returns process timeout" do
+      {:noreply, state, timeout} = Game.handle_info({:set_state, "player 1"}, %{})
+      assert Map.keys(state) == [:player1, :player2, :rules]
+      assert is_number(timeout)
+      assert timeout > 0
+    end
+
+    test "set state message sets new state" do
+      {:ok, pid} = start_supervised({Game, "player 1"})
+      send(pid, {:set_state, "new name"})
+      Process.sleep(10)
+      assert :ets.lookup(:game_state, "new name") != []
+    end
+
+    test "set state message reuses existing state" do
+      :ets.insert(:game_state, {"player 1", %{game: "state"}})
+      {:ok, _pid} = start_supervised({Game, "player 1"})
+      Process.sleep(10)
+      assert :ets.lookup(:game_state, "player 1") == [{"player 1", %{game: "state"}}]
+    end
+
+    test "reply success sets ets state" do
+    end
+  end
+
   describe "game setup" do
     test "add player 2" do
       {:ok, pid} = start_supervised({Game, "player 1"})
       :ok = Game.add_player(pid, "player 2")
-      state = :sys.get_state(pid)
+      state = get_and_check_state(pid, "player 1")
       assert state.player2.name == "player 2"
     end
 
@@ -59,7 +108,7 @@ defmodule IslandsEngine.GameTest do
       {:ok, pid} = start_supervised({Game, "player 1"})
       :ok = Game.add_player(pid, "player 2")
 
-      state = :sys.get_state(pid)
+      state = get_and_check_state(pid, "player 1")
       assert state.rules.state == :players_set
       assert state.rules.player1 == :islands_not_set
       assert state.rules.player2 == :islands_not_set
@@ -72,7 +121,7 @@ defmodule IslandsEngine.GameTest do
       :ok = Game.position_island(pid, :player1, :atoll, 1, 3)
       :ok = Game.set_islands(pid, :player1)
 
-      state = :sys.get_state(pid)
+      state = get_and_check_state(pid, "player 1")
       assert state.rules.state == :players_set
       assert state.rules.player1 == :islands_set
       assert state.rules.player2 == :islands_not_set
@@ -85,7 +134,7 @@ defmodule IslandsEngine.GameTest do
       :ok = Game.position_island(pid, :player2, :atoll, 1, 3)
       :ok = Game.set_islands(pid, :player2)
 
-      state = :sys.get_state(pid)
+      state = get_and_check_state(pid, "player 1")
       assert state.rules.state == :player1_turn
       assert state.rules.player1 == :islands_set
       assert state.rules.player2 == :islands_set
@@ -123,17 +172,17 @@ defmodule IslandsEngine.GameTest do
 
       # Player 1 misses on last row
       {:miss, :none, :no_win} = Game.guess_coordinate(pid, :player1, 10, 1)
-      state = :sys.get_state(pid)
+      state = get_and_check_state(pid, "player 1")
       assert state.rules.state == :player2_turn
 
       # Player 2 misses on last row
       {:miss, :none, :no_win} = Game.guess_coordinate(pid, :player2, 10, 1)
-      state = :sys.get_state(pid)
+      state = get_and_check_state(pid, "player 1")
       assert state.rules.state == :player1_turn
 
       # Player 1 hits the final island and wins
       {:hit, :dot, :win} = Game.guess_coordinate(pid, :player1, 10, 10)
-      state = :sys.get_state(pid)
+      state = get_and_check_state(pid, "player 1")
       assert state.rules.state == :game_over
 
       # Player 2 cannot take a turn
@@ -152,7 +201,7 @@ defmodule IslandsEngine.GameTest do
       :ok = Game.add_player(pid, "player 2")
 
       # Overwrite the state with one where the rules are already in player1's turn
-      state = :sys.get_state(pid)
+      state = get_and_check_state(pid, "player 1")
       new_rules = %{state.rules |
                     state: :player1_turn,
                     player1: :islands_set,
@@ -208,7 +257,7 @@ defmodule IslandsEngine.GameTest do
       :ok = Game.add_player(pid, "player 2")
 
       # Overwrite the state with one where the rules are already in player1's turn
-      state = :sys.get_state(pid)
+      state = get_and_check_state(pid, "player 1")
       new_rules = %{state.rules |
                     state: :player1_turn,
                     player1: :islands_set,
@@ -224,6 +273,8 @@ defmodule IslandsEngine.GameTest do
       :ok = Game.add_player(pid, "player 2")
 
       # Overwrite the state with one where the rules are already in player1's turn
+      # Note: this just lets just circumvent all the island setting, but we also
+      # have to fiddle with the state, so the ets state won't match.
       state = :sys.get_state(pid)
       new_rules = %{state.rules |
                     state: :player1_turn,

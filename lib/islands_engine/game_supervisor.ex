@@ -16,6 +16,12 @@ defmodule IslandsEngine.GameSupervisor do
   end
 
   def stop_game(name) do
+    # Note: Game mustn't do the cleanup in termiante/2, as the process might be
+    # crashing and we rely on a restart to pickup the existing state.
+    #
+    # See also documentation for GenServer.terminate for cases where terminate/2 isn't called.
+    # (https://hexdocs.pm/elixir/1.12/GenServer.html#c:terminate/2)
+    :ets.delete(:game_state, name)
     DynamicSupervisor.terminate_child(__MODULE__, pid_from_name(name))
   end
 

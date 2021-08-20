@@ -10,13 +10,25 @@ defmodule IslandsEngine.Game do
   end
 
   def init(name) do
-    player1 = %{name: name, board: Board.new(), guesses: Guesses.new()}
-    player2 = %{name: nil, board: Board.new(), guesses: Guesses.new()}
-    {:ok, %{player1: player1, player2: player2, rules: %Rules{}}, @timeout}
+    send(self(), {:set_state, name})
+    {:ok, fresh_state(name)}
   end
+
+  def terminate({:shutdown, :timeout}, state) do
+    :ets.delete(:game_state, state.player1.name)
+    :ok
+  end
+
+  def terminate(_reason, _state), do: :ok
 
   def via_tuple(name) do
     {:via, Registry, {Registry.Game, name}}
+  end
+
+  defp fresh_state(name) do
+    player1 = %{name: name, board: Board.new(), guesses: Guesses.new()}
+    player2 = %{name: nil, board: Board.new(), guesses: Guesses.new()}
+    %{player1: player1, player2: player2, rules: %Rules{}}
   end
 
   def add_player(game, name) when is_binary(name) do
@@ -37,6 +49,15 @@ defmodule IslandsEngine.Game do
 
   def handle_info(:timeout, state) do
     {:stop, {:shutdown, :timeout}, state}
+  end
+
+  def handle_info({:set_state, name}, _state) do
+    state = case :ets.lookup(:game_state, name) do
+              [] -> fresh_state(name)
+              [{_name, state}] -> state
+            end
+    :ets.insert(:game_state, {name, state})
+    {:noreply, state, @timeout}
   end
 
   def handle_call({:add_player, name}, _from, state) do
@@ -104,7 +125,10 @@ defmodule IslandsEngine.Game do
 
   defp update_rules(state, rules), do: %{state | rules: rules}
 
-  defp reply_success(state, reply), do: {:reply, reply, state, @timeout}
+  defp reply_success(state, reply) do
+    :ets.insert(:game_state, {state.player1.name, state})
+    {:reply, reply, state, @timeout}
+  end
 
   defp reply_error(state, error), do: {:reply, {:error, error}, state}
 
