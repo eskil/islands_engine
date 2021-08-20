@@ -1,4 +1,7 @@
 defmodule IslandsEngine.Game do
+  # In test mode, export all so we can test eg. reply_success
+  @compile if Mix.env == :test, do: :export_all
+
   use GenServer, restart: :transient
   alias IslandsEngine.{Board, Guesses, Rules, Island, Coordinate}
 
@@ -130,9 +133,9 @@ defmodule IslandsEngine.Game do
     {:reply, reply, state, @timeout}
   end
 
-  defp reply_error(state, error), do: {:reply, {:error, error}, state}
+  defp reply_error(state, error), do: {:reply, {:error, error}, state, @timeout}
 
-  defp reply_error(state), do: {:reply, :error, state}
+  defp reply_error(state), do: {:reply, :error, state, @timeout}
 
   defp player_board(state, player), do: Map.get(state, player).board
 

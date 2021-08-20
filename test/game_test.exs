@@ -40,8 +40,39 @@ defmodule IslandsEngine.GameTest do
       assert child_spec.restart == :transient
     end
 
-    test "timeout" do
+    test "handle timeout" do
       assert Game.handle_info(:timeout, :ok) == {:stop, {:shutdown, :timeout}, :ok}
+    end
+
+    test "set state message returns process timeout" do
+      {:noreply, state, timeout} = Game.handle_info({:set_state, "player 1"}, %{})
+      assert Map.keys(state) == [:player1, :player2, :rules]
+      assert is_number(timeout)
+      assert timeout > 0
+    end
+
+    test "reply success returns timeout" do
+      # Note: reply_success is private, but we want to explicitly verify it sets the process timeout
+      state = %{player1: %{name: "player 1"}}
+      {:reply, :ok, ^state, timeout} = Game.reply_success(state, :ok)
+      assert is_number(timeout)
+      assert timeout > 0
+    end
+
+    test "reply error/1 sets ets state" do
+      # Note: reply_error/1 is private, but we want to explicitly verify it sets the process timeout
+      state = %{player1: %{name: "player 1"}}
+      {:reply, :error, ^state, timeout} = Game.reply_error(state)
+      assert is_number(timeout)
+      assert timeout > 0
+    end
+
+    test "reply error/2 sets ets state" do
+      # Note: reply_error/2 is private, but we want to explicitly verify it sets the process timeout
+      state = %{player1: %{name: "player 1"}}
+      {:reply, {:error, :ok}, ^state, timeout} = Game.reply_error(state, :ok)
+      assert is_number(timeout)
+      assert timeout > 0
     end
   end
 
@@ -55,13 +86,6 @@ defmodule IslandsEngine.GameTest do
       assert :ets.lookup(:game_state, "player 1") != []
       Game.terminate({:shutdown, :timeout}, :sys.get_state(pid))
       assert :ets.lookup(:game_state, "player 1") == []
-    end
-
-    test "set state message returns process timeout" do
-      {:noreply, state, timeout} = Game.handle_info({:set_state, "player 1"}, %{})
-      assert Map.keys(state) == [:player1, :player2, :rules]
-      assert is_number(timeout)
-      assert timeout > 0
     end
 
     test "set state message sets new state" do
@@ -79,6 +103,10 @@ defmodule IslandsEngine.GameTest do
     end
 
     test "reply success sets ets state" do
+      # Note: reply_success is private, but we want to explicitly verify it sets the ets state
+      state = %{player1: %{name: "player 1"}}
+      {:reply, :ok, _state, _timeout} = Game.reply_success(state, :ok)
+      [{"player 1", ^state}] = :ets.lookup(:game_state, "player 1")
     end
   end
 
