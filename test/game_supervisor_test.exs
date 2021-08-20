@@ -9,8 +9,6 @@ defmodule IslandsEngine.GameSupervisorTest do
     end
 
     test "start/stop game" do
-      {:error, {{:already_started, pid}, _}} = start_supervised({GameSupervisor, :ok})
-      IO.puts "\n#{inspect(pid)}"
       {:ok, game} = GameSupervisor.start_game("king kong")
       assert Process.alive?(game)
       :ok = GameSupervisor.stop_game("king kong")
