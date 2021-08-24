@@ -1,6 +1,5 @@
 defmodule IslandsEngine.Board do
-  alias __MODULE__
-  alias IslandsEngine.{Coordinate, Island, Guesses}
+  alias IslandsEngine.{Coordinate, Island}
 
   def position_island(board, key, %Island{} = island) do
     case overlaps_with_existing_island?(board, key, island) do

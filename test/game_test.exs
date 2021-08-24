@@ -17,6 +17,8 @@ defmodule IslandsEngine.GameTest do
     ets_state
   end
 
+  # This test suite tests Game's GenServer behaviour code. This includes
+  # testing internal behaviour such as returning timeouts etc.
   describe "game genserver" do
     test "via tuple" do
       assert Game.via_tuple("player 1") == {:via, Registry, {Registry.Game, "player 1"}}
@@ -76,6 +78,8 @@ defmodule IslandsEngine.GameTest do
     end
   end
 
+  # This test suite tests Game's management of internal state in ets
+  # tables. This tests internal behaviour and implementation details.
   describe "game ets" do
     test "init/terminate adds/removes ets state" do
       {:ok, pid} = start_supervised({Game, "player 1"})
@@ -110,6 +114,7 @@ defmodule IslandsEngine.GameTest do
     end
   end
 
+  # This test suite tests Game setup. This is externally observable behaviour only.
   describe "game setup" do
     test "add player 2" do
       {:ok, pid} = start_supervised({Game, "player 1"})
@@ -169,6 +174,7 @@ defmodule IslandsEngine.GameTest do
     end
   end
 
+  # This test suite tests Game's full play. This is externally observable behaviour only.
   describe "game play" do
     test "full game play" do
       {:ok, pid} = start_supervised({Game, "player 1"})
@@ -218,6 +224,8 @@ defmodule IslandsEngine.GameTest do
     end
   end
 
+  # This test suite tests Game's response to incorrect operations (rule
+  # violations). This in part involves internal details such as setting state.
   describe "game error operations" do
     test "cannot position island without two players" do
       {:ok, pid} = start_supervised({Game, "player 1"})
