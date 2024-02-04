@@ -15,6 +15,7 @@ defmodule IslandsEngine.MixProject do
         "coveralls.post": :test,
         "coveralls.html": :test
       ],
+      source_url: "https://github.com/eskil/islands_engine",
       elixirc_paths: elixirc_paths(Mix.env())
     ]
   end
