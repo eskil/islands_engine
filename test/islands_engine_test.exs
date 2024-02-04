@@ -11,7 +11,7 @@ defmodule IslandsEngineTest do
     test "game supervisor already started" do
       # GameSupervisor is started by IslandsEngine.Application, it'll return an
       # already_started error.
-      {:error, {{:already_started, _pid}, _}} = start_supervised(GameSupervisor)
+      {:error, {:already_started, _pid}} = start_supervised(GameSupervisor)
     end
 end
 end

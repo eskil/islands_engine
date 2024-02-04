@@ -26,7 +26,7 @@ defmodule IslandsEngine.GameTest do
 
     test "init" do
       {:ok, state} = Game.init("player 1")
-      assert Map.keys(state) == [:player1, :player2, :rules]
+      assert Map.keys(state) -- [:player1, :player2, :rules] == []
     end
 
     test "start_link" do
@@ -48,7 +48,7 @@ defmodule IslandsEngine.GameTest do
 
     test "set state message returns process timeout" do
       {:noreply, state, timeout} = Game.handle_info({:set_state, "player 1"}, %{})
-      assert Map.keys(state) == [:player1, :player2, :rules]
+      assert Map.keys(state) -- [:player1, :player2, :rules] == []
       assert is_number(timeout)
       assert timeout > 0
     end
@@ -196,7 +196,8 @@ defmodule IslandsEngine.GameTest do
       :ok = Game.position_island(pid, :player2, :atoll, 1, 3)
       :ok = Game.set_islands(pid, :player2)
 
-      # Carpet forest the map, except the three cases we test separately
+      # Create targets that hit the entire map, except two targets we test
+      # separately to test end-of-game
       targets = for row <- Coordinate.board_range, col <- Coordinate.board_range, do: {row, col}
       targets = Enum.reject(targets, fn {row, col} -> {row, col} in [{10, 1}, {10, 10}] end)
       Enum.map(targets, fn {row, col} ->

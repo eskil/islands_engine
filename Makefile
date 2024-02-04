@@ -18,3 +18,4 @@ pure:
 
 test:
 	MIX_ENV=test mix coveralls.html --trace
+	MIX_ENV=test mix test

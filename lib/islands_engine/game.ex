@@ -128,14 +128,14 @@ defmodule IslandsEngine.Game do
 
   defp update_rules(state, rules), do: %{state | rules: rules}
 
-  defp reply_success(state, reply) do
+  def reply_success(state, reply) do
     :ets.insert(:game_state, {state.player1.name, state})
     {:reply, reply, state, @timeout}
   end
 
-  defp reply_error(state, error), do: {:reply, {:error, error}, state, @timeout}
+  def reply_error(state, error), do: {:reply, {:error, error}, state, @timeout}
 
-  defp reply_error(state), do: {:reply, :error, state, @timeout}
+  def reply_error(state), do: {:reply, :error, state, @timeout}
 
   defp player_board(state, player), do: Map.get(state, player).board
 
