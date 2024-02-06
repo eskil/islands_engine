@@ -15,7 +15,7 @@ of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:islands_engine, git: "https://github.com/eskil/islands_engins.git"}
+    {:islands_engine, git: "https://github.com/eskil/islands_engine.git"}
   ]
 end
 ```
