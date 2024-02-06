@@ -25,3 +25,10 @@ islands_engine-*.tar
 # Temporary files, for example, from tests.
 /tmp/
 *~
+
+# Emacs files
+\#*\#
+*~
+
+# MacOS
+.DS_Store

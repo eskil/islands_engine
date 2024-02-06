@@ -26,15 +26,24 @@ defmodule IslandsEngine.GameTest do
 
     test "init" do
       {:ok, state} = Game.init("player 1")
-      assert Map.keys(state) -- [:player1, :player2, :rules] == []
+      assert Map.keys(state) -- [:name, :player1, :player2, :rules] == []
     end
 
     test "start_link" do
       {:ok, pid} = start_supervised({Game, "player 1"})
       state = :sys.get_state(pid)
+      assert state.name != nil
       assert state.player1.name == "player 1"
       assert state.player2.name == nil
       assert state.rules
+    end
+
+    test "different name" do
+      {:ok, pid1} = start_supervised({Game, "player 1"}, id: :one)
+      {:ok, pid2} = start_supervised({Game, "player 2"}, id: :two)
+      state1 = :sys.get_state(pid1)
+      state2 = :sys.get_state(pid2)
+      assert state1.name != state2.name
     end
 
     test "child_spec" do
@@ -48,7 +57,7 @@ defmodule IslandsEngine.GameTest do
 
     test "set state message returns process timeout" do
       {:noreply, state, timeout} = Game.handle_info({:set_state, "player 1"}, %{})
-      assert Map.keys(state) -- [:player1, :player2, :rules] == []
+      assert Map.keys(state) -- [:name, :player1, :player2, :rules] == []
       assert is_number(timeout)
       assert timeout > 0
     end
